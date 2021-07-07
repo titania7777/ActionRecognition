@@ -1,0 +1,20 @@
+# Pycache
+__pycache__
+
+# Dataset
+Data/UCF101/videos
+Data/UCF101/frames
+
+Data/HMDB51/videos
+Data/HMDB51/frames
+
+Data/ActivityNet/videos
+Data/ActivityNet/frames
+
+# sampled_split
+Data/UCF101/labels/sampled_split
+Data/HMDB51/labels/sampled_split
+Data/ActivityNet/labels/sampled_split
+
+# Save
+Save
