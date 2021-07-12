@@ -3,14 +3,12 @@ import csv
 import json
 import numpy as np
 import torch
-import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from PIL import Image # Try using the pillow-simd !!
 from glob import glob
 
-import math
-import random
-from torchvision.transforms import functional as F
+import Core.Transforms as Transforms
+
 # VideoDataset
 class VideoDataset(Dataset):
     def __init__(self, frames_path:str, annotation_path:str, sampled_split:bool, train:bool, frame_size:int=112,
@@ -52,33 +50,33 @@ class VideoDataset(Dataset):
 
         # transformer
         if self.train:
-            self.transform = transforms.Compose([
-                RandomResizedCrop(size=frame_size, scale=(0.25, 1.0), ratio=(0.75, 1.0 / 0.75)),
-                transforms.RandomHorizontalFlip(p=0.5),
-                transforms.ToTensor(),
-                transforms.Normalize(
+            self.transform = Transforms.Compose([
+                Transforms.RandomResizedCrop(size=frame_size, scale=(0.25, 1.0), ratio=(0.75, 1.0 / 0.75)),
+                Transforms.RandomHorizontalFlip(p=0.5),
+                Transforms.ToTensor(),
+                Transforms.Normalize(
                     mean = [0.4345, 0.4051, 0.3775],
                     std = [0.2768, 0.2713, 0.2737]
                 ),
             ])
         else:
-            self.transform = transforms.Compose([
-                transforms.Resize(size=frame_size),
-                transforms.CenterCrop(size=frame_size),
-                transforms.ToTensor(),
-                transforms.Normalize(
+            self.transform = Transforms.Compose([
+                Transforms.Resize(size=frame_size),
+                Transforms.CenterCrop(size=frame_size),
+                Transforms.ToTensor(),
+                Transforms.Normalize(
                     mean = [0.4345, 0.4051, 0.3775],
                     std = [0.2768, 0.2713, 0.2737]
                 ),
             ])
-    
+
     def __len__(self) -> int:
         return len(self.labels)
 
     def get_few_shot_sampler(self, iter_size:int, way:int, shot:int, query:int):
         return FewShotSampler(labels=[labels[1]for labels in self.labels], iter_size=iter_size, way=way, shot=shot, query=query)
 
-    def _read_csv(self, csv_path: str) -> (list, dict):
+    def _read_csv(self, csv_path:str) -> (list, dict):
         labels = [] # [[sub directory file path, label]]
         categories = {} # {label: category(str)}
         with open(csv_path, "r") as f:
@@ -91,7 +89,7 @@ class VideoDataset(Dataset):
 
         return labels, categories
     
-    def _read_json(self, json_path: str) -> (list, dict):
+    def _read_json(self, json_path:str) -> (list, dict):
         labels = [] # [[sub directory file path, label]]]
         categories = {} # {label: category(str)}
         with open(json_path, "r") as f:
@@ -214,29 +212,19 @@ class VideoDataset(Dataset):
             indices = self._add_pads(length_of_frames, self.sequence_length, self.random_pad_sample)
 
         images_path = images_path[indices]
-        
+
+        # Initialize Random Parameters
+        self.transform.initialize(self.train)
+
         # load frames
         if self.channel_first:
             # for 3D Conv
-            data = torch.stack([self.transform(Image.open(image_path)) for image_path in images_path], dim=1)
+            data = torch.stack([self.transform(Image.open(image_path).convert("RGB")) for image_path in images_path], dim=1)
         else:
             # for 2D Conv
-            data = torch.stack([self.transform(Image.open(image_path)) for image_path in images_path], dim=0)
+            data = torch.stack([self.transform(Image.open(image_path).convert("RGB")) for image_path in images_path], dim=0)
 
         return data, label
-
-class RandomResizedCrop(transforms.RandomResizedCrop):
-    def __init__(self, size, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.), interpolation=Image.BILINEAR):
-        super().__init__(size, scale, ratio, interpolation)
-        self.initialize = True
-
-    def __call__(self, img):
-        if self.initialize:
-            self.params = self.get_params(img, self.scale, self.ratio)
-            self.initialize = False
-
-        i, j, h, w = self.params # Fixed Parameters
-        return F.resized_crop(img, i, j, h, w, self.size, self.interpolation)
 
 class FewShotSampler():
     def __init__(self, labels:list, iter_size:int, way:int, shot:int, query:int):

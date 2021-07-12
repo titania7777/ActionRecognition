@@ -99,7 +99,7 @@ def main(frames_path:str, train_annotation_path:str, val_annotation_path:str, sa
     optimizer = torch.optim.SGD(model_tune.parameters(), lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
     
     # Learning Rate Scheduler
-    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=5, verbose=True)
+    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=10, verbose=True)
 
     # Display Training Informations
     print("[train] number of videos: {}, [val] number of videos: {}".format(len(train_dataset), len(validate_datast)))
@@ -206,10 +206,10 @@ if __name__ == "__main__":
     parser.add_argument("--no-uniform-frame-sample", action="store_false") # Default is uniform sampling
     parser.add_argument("--sampled-split", action="store_true") # Testing for our method, See this https://github.com/titania7777/VideoFrameSampler
     parser.add_argument("--batch-size", type=int, default=128)
-    parser.add_argument("--num-epochs", type=int, default=50)
-    parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument("--num-epochs", type=int, default=150)
+    parser.add_argument("--learning-rate", type=float, default=0.1)
     parser.add_argument("--momentum", type=float, default=0.9)
-    parser.add_argument("--weight-decay", type=float, default=1e-4)
+    parser.add_argument("--weight-decay", type=float, default=1e-3)
     parser.add_argument("--tune-layer", type=int, default=-1) # -1 means using the all layers
     parser.add_argument("--num-workers", type=int, default=4)
     # For Parallel Mode
